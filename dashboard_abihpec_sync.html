@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Du · Painel de Entregas ABIHPEC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0D1117; --bg-panel:#131B24; --bg-card:#161D26;
+    --border:#22303C; --border-soft:#1B2530;
+    --text:#E6EDF3; --text-dim:#8B98A5; --text-faint:#5B6B79;
+    --blue:#58A6FF; --green:#7EE787; --orange:#F97316; --red:#F85149;
+    --mono:'JetBrains Mono', monospace; --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; padding:32px 24px 100px;}
+  .wrap{max-width:1180px; margin:0 auto;}
+
+  header{display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:20px; border-bottom:1px solid var(--border); padding-bottom:24px; margin-bottom:32px;}
+  .eyebrow{font-family:var(--mono); font-size:12px; color:var(--green); letter-spacing:.08em; margin-bottom:8px; display:flex; align-items:center; gap:8px;}
+  .eyebrow::before{content:"●"; color:var(--green); font-size:9px;}
+  .eyebrow.offline::before{color:var(--red);}
+  .eyebrow.offline{color:var(--red);}
+  h1{font-size:28px; font-weight:800; letter-spacing:-.01em;}
+  .sub{color:var(--text-dim); font-size:14px; margin-top:6px; font-family:var(--mono);}
+  .header-right{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+  .mode-toggle{display:flex; background:var(--bg-panel); border:1px solid var(--border); border-radius:8px; padding:4px; gap:4px;}
+  .mode-toggle button{font-family:var(--mono); font-size:12px; padding:8px 16px; border:none; background:transparent; color:var(--text-dim); border-radius:6px; cursor:pointer; transition:.15s;}
+  .mode-toggle button.active{background:var(--blue); color:#0D1117; font-weight:600;}
+  .btn-new{font-family:var(--mono); font-size:12px; padding:10px 18px; border-radius:8px; border:1px solid var(--green); background:transparent; color:var(--green); cursor:pointer; font-weight:600;}
+  .btn-new:hover{background:rgba(126,231,135,.1);}
+
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:36px;}
+  .stat{background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; padding:20px; position:relative; overflow:hidden;}
+  .stat .bar{position:absolute; top:0; left:0; width:3px; height:100%;}
+  .stat .num{font-size:34px; font-weight:800; font-family:var(--mono); line-height:1;}
+  .stat .label{color:var(--text-dim); font-size:12.5px; margin-top:8px;}
+  .stat.total .bar{background:var(--blue);}
+  .stat.done .bar{background:var(--green);}
+  .stat.progress .bar{background:var(--orange);}
+  .stat.open .bar{background:var(--text-faint);}
+  .stat.done .num{color:var(--green);}
+  .stat.progress .num{color:var(--orange);}
+
+  .filter-group{margin-bottom:14px;}
+  .filter-label{font-family:var(--mono); font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px;}
+  .filters{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
+  .chip{font-family:var(--mono); font-size:12px; padding:7px 14px; border-radius:20px; border:1px solid var(--border); background:var(--bg-panel); color:var(--text-dim); cursor:pointer; transition:.15s; white-space:nowrap;}
+  .chip:hover{border-color:var(--blue);}
+  .chip.active{background:var(--blue); color:#0D1117; border-color:var(--blue); font-weight:600;}
+  .chip.tipo-active-ABIHPEC{background:var(--orange); border-color:var(--orange); color:#0D1117;}
+  .chip.tipo-active-Pessoal{background:var(--green); border-color:var(--green); color:#0D1117;}
+  .chip.tipo-active-EFC{background:#D2A8FF; border-color:#D2A8FF; color:#0D1117;}
+  .tipo-tag{font-family:var(--mono); font-size:9.5px; padding:2px 7px; border-radius:4px; margin-left:6px; vertical-align:middle;}
+  .tipo-tag.ABIHPEC{background:rgba(249,115,22,.15); color:var(--orange);}
+  .tipo-tag.Pessoal{background:rgba(126,231,135,.15); color:var(--green);}
+  .tipo-tag.EFC{background:rgba(210,168,255,.15); color:#D2A8FF;}
+
+  .board{display:grid; grid-template-columns:repeat(4,1fr); gap:16px;}
+  .col{background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; padding:14px; min-height:120px;}
+  .col-head{display:flex; justify-content:space-between; align-items:center; font-family:var(--mono); font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px; padding:0 2px;}
+  .col-head .count{background:var(--bg-card); padding:2px 8px; border-radius:10px; font-size:11px; border:1px solid var(--border);}
+  .col[data-status="Aberto"] .col-head{color:var(--text-faint);}
+  .col[data-status="Em andamento"] .col-head{color:var(--orange);}
+  .col[data-status="Em fase de teste"] .col-head{color:var(--blue);}
+  .col[data-status="Finalizado"] .col-head{color:var(--green);}
+
+  .card{background:var(--bg-card); border:1px solid var(--border-soft); border-radius:8px; padding:14px; margin-bottom:12px; cursor:pointer; transition:.15s;}
+  .card:hover{border-color:var(--blue); transform:translateY(-1px);}
+  .card .id{font-family:var(--mono); font-size:10.5px; color:var(--text-faint); margin-bottom:6px;}
+  .card .area-badge{display:inline-block; font-family:var(--mono); font-size:10px; padding:2px 8px; border-radius:4px; margin-bottom:8px; border:1px solid var(--border);}
+  .card .demanda{font-size:13.5px; font-weight:600; line-height:1.4; margin-bottom:6px;}
+  .card .solicitante{font-size:12px; color:var(--text-dim); margin-bottom:8px;}
+  .card .note{font-size:11.5px; color:var(--text-faint); font-family:var(--mono); border-top:1px dashed var(--border-soft); padding-top:8px; margin-top:8px;}
+  .card .date{font-size:10.5px; color:var(--text-faint); font-family:var(--mono); margin-top:6px;}
+
+  .area-Intelig{color:var(--blue); border-color:var(--blue);}
+  .area-Regul{color:var(--orange); border-color:var(--orange);}
+  .area-Desenv{color:var(--green); border-color:var(--green);}
+  .area-Comun{color:#D2A8FF; border-color:#D2A8FF;}
+  .area-Gestao{color:#F0883E; border-color:#F0883E;}
+
+  #presentation{display:none;}
+  .timeline{position:relative; padding-left:32px; margin-top:20px;}
+  .timeline::before{content:""; position:absolute; left:6px; top:6px; bottom:6px; width:2px; background:var(--border);}
+  .tl-item{position:relative; margin-bottom:28px;}
+  .tl-item::before{content:""; position:absolute; left:-32px; top:4px; width:12px; height:12px; border-radius:50%; border:2px solid var(--bg); background:var(--text-faint);}
+  .tl-item.dot-done::before{background:var(--green);}
+  .tl-item.dot-progress::before{background:var(--orange);}
+  .tl-item.dot-test::before{background:var(--blue);}
+  .tl-card{background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; padding:18px 20px;}
+  .tl-top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;}
+  .tl-date{font-family:var(--mono); font-size:11.5px; color:var(--text-faint);}
+  .tl-title{font-size:16px; font-weight:700; margin:6px 0 4px;}
+  .tl-meta{font-size:12.5px; color:var(--text-dim); margin-bottom:10px;}
+  .status-pill{font-family:var(--mono); font-size:11px; padding:4px 10px; border-radius:20px; font-weight:600; white-space:nowrap;}
+  .status-Finalizado{background:rgba(126,231,135,.12); color:var(--green);}
+  .status-Em-andamento{background:rgba(249,115,22,.12); color:var(--orange);}
+  .status-Em-fase-de-teste{background:rgba(88,166,255,.12); color:var(--blue);}
+  .status-Aberto{background:rgba(139,152,165,.12); color:var(--text-dim);}
+  .tl-result{font-size:13px; color:var(--text); line-height:1.5; margin-top:6px;}
+  .tl-result b{color:var(--text-dim); font-weight:600;}
+
+  .empty-state{text-align:center; padding:60px 20px; color:var(--text-faint); font-family:var(--mono); font-size:13px;}
+
+  .overlay{display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); align-items:center; justify-content:center; z-index:50; padding:20px;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:26px; width:100%; max-width:480px; max-height:88vh; overflow-y:auto;}
+  .modal h3{font-size:16px; margin-bottom:4px;}
+  .modal .sub2{font-size:12px; color:var(--text-dim); margin-bottom:18px; font-family:var(--mono);}
+  .field{margin-bottom:14px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .field label{font-size:11.5px; color:var(--text-dim); display:block; margin-bottom:6px; font-family:var(--mono);}
+  .field select, .field input, .field textarea{width:100%; background:var(--bg-card); border:1px solid var(--border); color:var(--text); padding:9px 10px; border-radius:6px; font-family:var(--sans); font-size:13px;}
+  .field textarea{resize:vertical; min-height:50px;}
+  .modal-actions{display:flex; gap:10px; margin-top:20px;}
+  .btn{flex:1; padding:10px; border-radius:6px; border:1px solid var(--border); font-family:var(--mono); font-size:12.5px; cursor:pointer; background:transparent; color:var(--text-dim);}
+  .btn.primary{background:var(--blue); color:#0D1117; border-color:var(--blue); font-weight:600;}
+  .btn.danger{border-color:var(--red); color:var(--red);}
+
+  .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--bg-card); border:1px solid var(--green); color:var(--green); font-family:var(--mono); font-size:12.5px; padding:10px 18px; border-radius:8px; opacity:0; pointer-events:none; transition:.25s; z-index:100;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+
+  footer{margin-top:40px; text-align:center; font-family:var(--mono); font-size:11px; color:var(--text-faint);}
+
+  @media(max-width:900px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .board{grid-template-columns:1fr;}
+    header{flex-direction:column; align-items:flex-start;}
+    .row2{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="eyebrow" id="conn-status">painel pessoal // tudo que eu sei fazer</div>
+      <h1>Painel de Entregas — Du</h1>
+      <div class="sub">ABIHPEC · EFC Solutions · pessoal — sincronizado com Google Sheets</div>
+    </div>
+    <div class="header-right">
+      <button class="btn-new" onclick="openNewModal()">+ nova demanda</button>
+      <div class="mode-toggle">
+        <button id="btn-board" class="active" onclick="setMode('board')">kanban</button>
+        <button id="btn-pres" onclick="setMode('pres')">apresentação</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat total"><div class="bar"></div><div class="num" id="s-total">0</div><div class="label">demandas registradas</div></div>
+    <div class="stat done"><div class="bar"></div><div class="num" id="s-done">0</div><div class="label">finalizadas</div></div>
+    <div class="stat progress"><div class="bar"></div><div class="num" id="s-progress">0</div><div class="label">em andamento / teste</div></div>
+    <div class="stat open"><div class="bar"></div><div class="num" id="s-open">0</div><div class="label">na fila</div></div>
+  </div>
+
+  <div class="filter-group">
+    <div class="filter-label">tipo</div>
+    <div class="filters" id="filters-tipo"></div>
+  </div>
+  <div class="filter-group">
+    <div class="filter-label">área</div>
+    <div class="filters" id="filters-area"></div>
+  </div>
+
+  <div id="board" class="board"></div>
+  <div id="presentation"><div class="timeline" id="timeline"></div></div>
+
+  <footer>clique em um card para editar · "+ nova demanda" para adicionar · dados sincronizados com sua planilha Google Sheets</footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="m-title">Nova demanda</h3>
+    <div class="sub2" id="m-id">#novo registro</div>
+
+    <div class="row2">
+      <div class="field"><label>Tipo</label>
+        <select id="m-tipo">
+          <option value="ABIHPEC">ABIHPEC</option>
+          <option value="EFC">EFC Solutions</option>
+        </select>
+      </div>
+      <div class="field"><label>Data</label><input type="text" id="m-data" placeholder="dd/mm/aaaa"></div>
+    </div>
+
+    <div class="row2">
+      <div class="field"><label>Área</label>
+        <select id="m-area">
+          <option>Inteligência de Mercado</option>
+          <option>Regulatório</option>
+          <option>Desenvolvimento Sustentável - MPF</option>
+          <option>Comunicação</option>
+          <option>Gestão, Mercado e Finanças</option>
+          <option value="__outro__">Outra área...</option>
+        </select>
+        <input type="text" id="m-area-custom" placeholder="nome da área" style="margin-top:8px; display:none;">
+      </div>
+    </div>
+
+    <div class="field"><label>Solicitante</label><input type="text" id="m-solicitante" placeholder="nome"></div>
+    <div class="field"><label>Demanda</label><textarea id="m-demanda" placeholder="o que foi pedido"></textarea></div>
+    <div class="field"><label>Observações</label><input type="text" id="m-obs" placeholder="fonte dos dados, recursos usados etc."></div>
+    <div class="field"><label>Resultado esperado</label><textarea id="m-resultado" placeholder="qual problema isso resolve"></textarea></div>
+
+    <div class="row2">
+      <div class="field"><label>Status</label>
+        <select id="m-status">
+          <option>Aberto</option>
+          <option>Em andamento</option>
+          <option>Em fase de teste</option>
+          <option>Finalizado</option>
+        </select>
+      </div>
+      <div class="field"><label>Data de entrega</label><input type="text" id="m-entrega" placeholder="dd/mm/aaaa"></div>
+    </div>
+
+    <div class="field"><label>Observação / próximo passo</label><input type="text" id="m-nota" placeholder="ex: aguardando retorno de..."></div>
+
+    <div class="modal-actions">
+      <button class="btn danger" id="btn-delete" onclick="deleteCurrent()" style="display:none;">excluir</button>
+      <button class="btn" onclick="closeModal()">cancelar</button>
+      <button class="btn primary" onclick="saveModal()">salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">salvo ✓</div>
+
+<script>
+// ⚠️ COLE AQUI A URL DO SEU APPS SCRIPT IMPLANTADO
+const SCRIPT_URL = "COLE_AQUI_A_URL_DO_APPS_SCRIPT";
+
+const AREA_CLASS = {
+  "Inteligência de Mercado":"area-Intelig",
+  "Regulatório":"area-Regul",
+  "Desenvolvimento Sustentável - MPF":"area-Desenv",
+  "Comunicação":"area-Comun",
+  "Gestão, Mercado e Finanças":"area-Gestao"
+};
+
+const TIPOS = ["ABIHPEC","EFC"];
+const TIPO_LABEL = { "ABIHPEC":"ABIHPEC", "EFC":"EFC Solutions" };
+
+let data = [];
+let activeFilter = "all";     // filtro de área
+let activeTipo = "all";       // filtro de tipo
+let editingId = null;
+
+function toDateSort(d){ if(!d) return 0; const [dd,mm,yy]=d.split('/'); if(!yy) return 0; return new Date(yy,mm-1,dd).getTime(); }
+function statusClass(st){ return st.replace(/ /g,'-'); }
+function dotClass(st){
+  if(st==='Finalizado') return 'dot-done';
+  if(st==='Em andamento') return 'dot-progress';
+  if(st==='Em fase de teste') return 'dot-test';
+  return '';
+}
+
+// ---------- CARREGAR DA PLANILHA ----------
+async function carregar(){
+  setConn(true, "sincronizando...");
+  try{
+    const resp = await fetch(SCRIPT_URL + "?action=listar");
+    const json = await resp.json();
+    data = json.demandas || [];
+    localStorage.setItem('abihpec_dash_cache', JSON.stringify(data));
+    setConn(true, "conectado ao sheets");
+  }catch(err){
+    // fallback: usa último cache local se a rede falhar
+    data = JSON.parse(localStorage.getItem('abihpec_dash_cache') || '[]');
+    setConn(false, "offline — mostrando último cache");
+  }
+  render();
+}
+
+function setConn(ok, label){
+  const el = document.getElementById('conn-status');
+  el.textContent = "abihpec // " + label;
+  el.classList.toggle('offline', !ok);
+}
+
+function buildFilters(){
+  // filtro de tipo — sempre mostra os 3, mesmo que ainda não tenha dados daquele tipo
+  const tipoEl = document.getElementById('filters-tipo');
+  tipoEl.innerHTML = `<button class="chip ${activeTipo==='all'?'active':''}" onclick="setTipoFilter('all')">tudo</button>` +
+    TIPOS.map(t=>`<button class="chip ${activeTipo===t?'tipo-active-'+t:''}" onclick="setTipoFilter('${t}')">${TIPO_LABEL[t]}</button>`).join('');
+
+  // filtro de área — só as áreas presentes no tipo selecionado
+  const escopo = activeTipo==='all' ? data : data.filter(d=>d.tipo===activeTipo);
+  const areas = [...new Set(escopo.map(d=>d.area))].filter(Boolean);
+  const areaEl = document.getElementById('filters-area');
+  areaEl.innerHTML = `<button class="chip ${activeFilter==='all'?'active':''}" onclick="setFilter('all')">todas as áreas</button>` +
+    areas.map(a=>`<button class="chip ${activeFilter===a?'active':''}" onclick="setFilter('${a.replace(/'/g,"\\'")}')">${a}</button>`).join('');
+}
+function setFilter(a){ activeFilter = a; render(); }
+function setTipoFilter(t){ activeTipo = t; activeFilter = "all"; render(); }
+
+function setMode(m){
+  document.getElementById('board').style.display = m==='board' ? 'grid' : 'none';
+  document.getElementById('presentation').style.display = m==='pres' ? 'block' : 'none';
+  document.getElementById('btn-board').classList.toggle('active', m==='board');
+  document.getElementById('btn-pres').classList.toggle('active', m==='pres');
+}
+
+function renderStats(filtered){
+  document.getElementById('s-total').textContent = filtered.length;
+  document.getElementById('s-done').textContent = filtered.filter(d=>d.status==='Finalizado').length;
+  document.getElementById('s-progress').textContent = filtered.filter(d=>d.status==='Em andamento'||d.status==='Em fase de teste').length;
+  document.getElementById('s-open').textContent = filtered.filter(d=>d.status==='Aberto').length;
+}
+
+function areaClass(area){ return AREA_CLASS[area] || ''; }
+
+function renderBoard(filtered){
+  const statuses = ["Aberto","Em andamento","Em fase de teste","Finalizado"];
+  const board = document.getElementById('board');
+
+  if(data.length===0){
+    board.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+      nenhuma demanda ainda.<br><br>clique em "+ nova demanda" pra começar a preencher.
+    </div>`;
+    return;
+  }
+
+  board.innerHTML = statuses.map(st=>{
+    const items = filtered.filter(d=>d.status===st).sort((a,b)=>toDateSort(b.data)-toDateSort(a.data));
+    return `<div class="col" data-status="${st}">
+      <div class="col-head"><span>${st}</span><span class="count">${items.length}</span></div>
+      ${items.map(d=>`
+        <div class="card" onclick="openEditModal('${d.id}')">
+          <div class="id">${d.id} · ${d.data}<span class="tipo-tag ${d.tipo}">${TIPO_LABEL[d.tipo]||d.tipo}</span></div>
+          <span class="area-badge ${areaClass(d.area)}">${d.area}</span>
+          <div class="demanda">${d.demanda}</div>
+          <div class="solicitante">solicitante: ${d.solicitante}</div>
+          ${d.nota ? `<div class="note">${d.nota}</div>` : ''}
+          ${d.entrega ? `<div class="date">entregue em ${d.entrega}</div>` : ''}
+        </div>
+      `).join('') || '<div style="color:var(--text-faint); font-size:12px; font-family:var(--mono); padding:8px 2px;">— vazio —</div>'}
+    </div>`;
+  }).join('');
+}
+
+function renderTimeline(filtered){
+  const timeline = document.getElementById('timeline');
+  if(data.length===0){
+    timeline.innerHTML = `<div class="empty-state">nenhuma demanda ainda.</div>`;
+    return;
+  }
+  const sorted = [...filtered].sort((a,b)=>toDateSort(b.data)-toDateSort(a.data));
+  timeline.innerHTML = sorted.map(d=>`
+    <div class="tl-item ${dotClass(d.status)}">
+      <div class="tl-card">
+        <div class="tl-top">
+          <div>
+            <div class="tl-date">${d.data} · ${d.id}<span class="tipo-tag ${d.tipo}">${TIPO_LABEL[d.tipo]||d.tipo}</span></div>
+            <div class="tl-title">${d.demanda}</div>
+            <div class="tl-meta">${d.area} · solicitado por ${d.solicitante}</div>
+          </div>
+          <span class="status-pill status-${statusClass(d.status)}">${d.status}</span>
+        </div>
+        <div class="tl-result"><b>Resultado esperado:</b> ${d.resultado||'—'}</div>
+        ${d.entrega ? `<div class="tl-result"><b>Entrega:</b> ${d.entrega}</div>` : ''}
+        ${d.nota ? `<div class="tl-result"><b>Situação:</b> ${d.nota}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function render(){
+  buildFilters();
+  let filtered = activeTipo==='all' ? data : data.filter(d=>d.tipo===activeTipo);
+  filtered = activeFilter==='all' ? filtered : filtered.filter(d=>d.area===activeFilter);
+  renderStats(filtered);
+  renderBoard(filtered);
+  renderTimeline(filtered);
+}
+
+// ---------- MODAL: EDITAR ----------
+function openEditModal(id){
+  editingId = id;
+  const d = data.find(x=>x.id===id);
+  document.getElementById('m-title').textContent = "Editar demanda";
+  document.getElementById('m-id').textContent = d.id;
+  document.getElementById('m-tipo').value = d.tipo || "ABIHPEC";
+  document.getElementById('m-data').value = d.data;
+  setAreaField(d.area);
+  document.getElementById('m-solicitante').value = d.solicitante;
+  document.getElementById('m-demanda').value = d.demanda;
+  document.getElementById('m-obs').value = d.obs;
+  document.getElementById('m-resultado').value = d.resultado;
+  document.getElementById('m-status').value = d.status;
+  document.getElementById('m-entrega').value = d.entrega;
+  document.getElementById('m-nota').value = d.nota;
+  document.getElementById('btn-delete').style.display = 'block';
+  document.getElementById('overlay').classList.add('show');
+}
+
+// ---------- MODAL: NOVA ----------
+function openNewModal(){
+  editingId = null;
+  document.getElementById('m-title').textContent = "Nova demanda";
+  document.getElementById('m-id').textContent = "#novo registro";
+  document.getElementById('m-tipo').value = activeTipo!=='all' ? activeTipo : "ABIHPEC";
+  const hoje = new Date();
+  document.getElementById('m-data').value = String(hoje.getDate()).padStart(2,'0')+"/"+String(hoje.getMonth()+1).padStart(2,'0')+"/"+hoje.getFullYear();
+  setAreaField("Inteligência de Mercado");
+  document.getElementById('m-solicitante').value = "";
+  document.getElementById('m-demanda').value = "";
+  document.getElementById('m-obs').value = "";
+  document.getElementById('m-resultado').value = "";
+  document.getElementById('m-status').value = "Aberto";
+  document.getElementById('m-entrega').value = "";
+  document.getElementById('m-nota').value = "";
+  document.getElementById('btn-delete').style.display = 'none';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function setAreaField(area){
+  const sel = document.getElementById('m-area');
+  const opts = [...sel.options].map(o=>o.value);
+  const customInput = document.getElementById('m-area-custom');
+  if(opts.includes(area)){
+    sel.value = area;
+    customInput.style.display = 'none';
+  } else {
+    sel.value = "__outro__";
+    customInput.style.display = 'block';
+    customInput.value = area;
+  }
+}
+document.getElementById('m-area').addEventListener('change', function(){
+  document.getElementById('m-area-custom').style.display = this.value==='__outro__' ? 'block' : 'none';
+});
+
+function closeModal(){ document.getElementById('overlay').classList.remove('show'); editingId=null; }
+
+async function saveModal(){
+  const areaSel = document.getElementById('m-area').value;
+  const area = areaSel === '__outro__' ? document.getElementById('m-area-custom').value : areaSel;
+
+  const demanda = {
+    id: editingId || "",
+    tipo: document.getElementById('m-tipo').value,
+    data: document.getElementById('m-data').value,
+    area: area,
+    solicitante: document.getElementById('m-solicitante').value,
+    demanda: document.getElementById('m-demanda').value,
+    obs: document.getElementById('m-obs').value,
+    resultado: document.getElementById('m-resultado').value,
+    status: document.getElementById('m-status').value,
+    entrega: document.getElementById('m-entrega').value,
+    nota: document.getElementById('m-nota').value
+  };
+
+  closeModal();
+  showToast("salvando...");
+
+  try{
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "salvar", demanda: demanda })
+    });
+    showToast("salvo ✓");
+  }catch(err){
+    showToast("erro ao salvar — verifique a conexão");
+  }
+
+  // recarrega da planilha pra pegar o ID novo (se for criação) e confirmar
+  setTimeout(carregar, 900);
+}
+
+async function deleteCurrent(){
+  if(!editingId) return;
+  if(!confirm("Excluir esta demanda da planilha?")) return;
+  const id = editingId;
+  closeModal();
+  try{
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "excluir", id: id })
+    });
+    showToast("excluído ✓");
+  }catch(err){
+    showToast("erro ao excluir");
+  }
+  setTimeout(carregar, 900);
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+carregar();
+</script>
+</body>
+</html>
